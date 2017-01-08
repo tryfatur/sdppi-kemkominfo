@@ -93,7 +93,7 @@
 		fclose($fp);
 	}
 
-	$list_url = sdppi_url(2009);
+	$list_url = sdppi_url(2010);
 	$header   = array('no','nomor_memo_dinas', 'tgl_memo', 'tgl_upload', 'nomor_permohonan', 'nama_pemohon', 'nama_alat_perangkat', 'merk_model_type', 'negara_pembuat', 'keterangan');
 	$counter  = 0;
 	
@@ -128,5 +128,5 @@
 		}
 	}
 
-	generate_csv($header, $final_result, 'sdppi_2009');
+	generate_csv($header, $final_result, 'sdppi_2010');
 ?>

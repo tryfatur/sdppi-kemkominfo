@@ -1,6 +1,9 @@
 <?php
 	header("Content-Type: text/html; charset=ISO-8859-1");
 
+	/*
+	* Generate URL untuk scrapping data dari SDPPI Kominfo pertahunnya.
+	*/
 	function sdppi_url($year)
 	{
 		for ($i=1; $i < 13; $i++)
@@ -11,6 +14,7 @@
 				$headers = get_headers($url);
 				$status  = substr($headers[0], 9, 3);
 
+				//Memastikan link yang dihasilkan dapat diakses
 				if ($status == '200')
 					$result[$i-1] = $url;
 			}
@@ -28,6 +32,11 @@
 		return array_values($result);
 	}
 
+	/*
+	* Core function scrapping data (full docs: https://gist.github.com/anchetaWern/6150297)
+	* $url: String, URL yang ingin di scrap.
+	* $xpath_query: String, XPATH Query.
+	*/
 	function scrap_me($url, $xpath_query = '//div/table/tr/td')
 	{
 		$html        = file_get_contents($url);
@@ -54,19 +63,27 @@
 		return $result;
 	}
 
+	/*
+	* Custom function untuk menyesuaikan format data hasil scrap ke bentuk yang lebih mudah di olah.
+	* $scrap_raw: Array of string, Data scrap mentah hasil dari function scrap_me().
+	* $slice_array: Int, jumlah elemen array yang ingin di buang, dalam hal ini header data.
+	* $field_count: Int, jumlah kolom array yang ada atau ingin dibuat.
+	*/
 	function custom_sdppi($scrap_raw, $slice_array = 44, $field_count = 10)
 	{
 		$data = [];
 
 		if (!is_null($scrap_raw))
 		{
-			$result      = array_slice($scrap_raw, $slice_array);
+			$result      = array_slice($scrap_raw, $slice_array); // Menghilangkan data header/array header
 			$total_array = count($result);
 			$j           = 0;
 
 			for ($i=0; $i < $total_array; $i++)
 			{
 				$temp = array_slice($result, $j, $field_count);
+				// Memisahkan data per field_count elemen dengan syarat array tidak kosong, 
+				// data pertama setiap array adalah integer dan tidak lebih dari jumlah field_count - 1
 				if (!empty($temp) AND is_numeric($temp[0]) AND count($temp) > ($field_count - 1))
 				{
 					$data[$i] = $temp;
@@ -78,6 +95,12 @@
 		return $data;
 	}
 
+	/*
+	* Function untuk convert array ke CSV dan Force download.
+	* $header: Array, list header array.
+	* $data: Array, data yang sudah dalam bentuk array 2 dimensi, hasil dari function custom_sdppi()
+	* $filename: String, nama file CSV yang nanti di generate.
+	*/
 	function generate_csv($header, $data, $filename)
 	{
 		header('Content-Type: text/csv; charset=utf-8');
@@ -102,11 +125,13 @@
 		$raw = scrap_me($list_url[$i]);
 		if (count($raw) == 0)
 		{
+			// Custom XPATH Query karena beberapa data memiliki format HTML yang berbeda
 			$raw = scrap_me($list_url[$i], '//table/tr/td');
 			if (count($raw) == 0)
 				$raw = scrap_me($list_url[$i], '//table/tbody/tr/td');
 		}
 
+		// Bagan perulangan ini mencari index array setiap awal row dan jumlah row
 		$id = [];
 		foreach ($raw as $key => $value)
 		{
@@ -118,8 +143,7 @@
 			}
 		}
 
-		$data[$i] = custom_sdppi($raw, $id[0], $id[1] - $id[0]);
-
+		$data[$i]   = custom_sdppi($raw, $id[0], $id[1] - $id[0]);
 		$total_data = count($data[$i]);
 		for ($j=0; $j < $total_data; $j++)
 		{ 
